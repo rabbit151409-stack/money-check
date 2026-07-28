@@ -220,7 +220,7 @@ export default function App() {
         * { max-width: 100%; }
         .app-container { width: 100%; max-width: 460px; margin: 0 auto; padding: 22px 18px 104px; }
         .hero-amt { font-size: clamp(34px, 11vw, 44px); }
-        .bottom-nav { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 50; max-width: calc(100% - 24px); box-sizing: border-box; }
+        .bottom-nav { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 50; width: fit-content; max-width: calc(100% - 24px); box-sizing: border-box; }
         .nav-btn { display: flex; align-items: center; gap: 7px; border: none; cursor: pointer; font-weight: 700; border-radius: 999px; white-space: nowrap; flex-shrink: 0; font-size: 13.5px; padding: 11px 22px; }
         .nav-btn.inactive { padding: 11px 15px; }
         @media (max-width: 360px) {
@@ -688,7 +688,7 @@ export default function App() {
       </div>
 
       {/* 하단 네비게이션 */}
-      <div className="bottom-nav" style={{ display: "flex", gap: 6, background: C.hero, borderRadius: 999, padding: 6, boxShadow: "0 12px 30px -8px rgba(0,0,0,0.4)" }}>
+      <div className="bottom-nav" style={{ display: "flex", alignItems: "center", gap: 4, background: C.hero, borderRadius: 999, padding: 5, boxShadow: "0 12px 30px -8px rgba(0,0,0,0.4)" }}>
         {[["home", "홈", Home], ["ledger", "가계부", NotebookPen], ["savings", "저축", TrendingUp]].map(([p, label, Icon]) => {
           const active = page === p;
           return (

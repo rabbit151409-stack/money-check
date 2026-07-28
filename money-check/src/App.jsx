@@ -80,6 +80,12 @@ export default function App() {
     } catch {}
   }, [cats, payday, payAccount, startSaved, records, ledger]);
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [page]);
+
   const salary = records.length ? records[0].amount : 0;
 
   const catTotals = useMemo(
@@ -692,7 +698,7 @@ export default function App() {
         {[["home", "홈", Home], ["ledger", "가계부", NotebookPen], ["savings", "저축", TrendingUp]].map(([p, label, Icon]) => {
           const active = page === p;
           return (
-            <button key={p} onClick={() => { setPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="tap nav-btn" style={{
+            <button key={p} onClick={() => setPage(p)} className="tap nav-btn" style={{
               background: active ? "#FFFFFF" : "transparent", color: active ? C.ink : "rgba(255,255,255,0.6)" }}>
               <Icon size={18} /> {active && <span style={{ whiteSpace: "nowrap" }}>{label}</span>}
             </button>

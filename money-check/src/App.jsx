@@ -33,6 +33,7 @@ const INIT_CATS = [];
 
 const won = (n) => Math.round(n).toLocaleString("ko-KR");
 const sumItems = (items) => items.reduce((s, x) => s + (x.a || 0), 0);
+const fmtInput = (v) => { const s = String(v ?? "").replace(/[^0-9]/g, ""); return s === "" ? "" : Number(s).toLocaleString("ko-KR"); };
 const STORAGE_KEY = "moneycheck_v1";
 function loadStore() {
   try {
@@ -264,7 +265,7 @@ export default function App() {
           </div>
 
           <div className="flex flex-col" style={{ gap: 8 }}>
-            <input value={recAmt} onChange={(e) => setRecAmt(e.target.value.replace(/[^0-9]/g, ""))} inputMode="numeric" placeholder="받은 월급" className="num" style={{ width: "100%", fontSize: 14, fontWeight: 700, border: `1px solid ${C.line}`, borderRadius: 11, padding: "11px 12px", background: C.soft }} />
+            <input value={fmtInput(recAmt)} onChange={(e) => setRecAmt(e.target.value.replace(/[^0-9]/g, ""))} inputMode="numeric" placeholder="받은 월급" className="num" style={{ width: "100%", fontSize: 14, fontWeight: 700, border: `1px solid ${C.line}`, borderRadius: 11, padding: "11px 12px", background: C.soft }} />
             <button onClick={addRecord} className="tap flex items-center justify-center gap-1" style={{ width: "100%", background: C.hero, color: "#fff", border: "none", borderRadius: 11, padding: "12px 0", fontWeight: 700, fontSize: 14 }}><Plus size={16} /> 기록</button>
           </div>
 
@@ -348,7 +349,7 @@ export default function App() {
                               <BankSelect value={editDraft.acc} onChange={(val) => setEditDraft((v) => ({ ...v, acc: val }))} placeholder="어느 은행" />
                             </div>
                             <div className="flex" style={{ gap: 6 }}>
-                              <input value={editDraft.a} onChange={(e) => setEditDraft((v) => ({ ...v, a: e.target.value.replace(/[^0-9]/g, "") }))} inputMode="numeric" placeholder="금액" className="num" style={{ flex: 1, fontSize: 13, fontWeight: 700, border: `1px solid ${C.line}`, borderRadius: 9, padding: "8px 10px", background: "#fff" }} />
+                              <input value={fmtInput(editDraft.a)} onChange={(e) => setEditDraft((v) => ({ ...v, a: e.target.value.replace(/[^0-9]/g, "") }))} inputMode="numeric" placeholder="금액" className="num" style={{ flex: 1, fontSize: 13, fontWeight: 700, border: `1px solid ${C.line}`, borderRadius: 9, padding: "8px 10px", background: "#fff" }} />
                               <button onClick={() => saveEdit(c.id, idx)} className="tap flex items-center gap-1" style={{ background: c.color, color: "#fff", border: "none", borderRadius: 9, padding: "0 14px", fontWeight: 700, fontSize: 13 }}><Check size={14} /> 저장</button>
                               <button onClick={() => setEdit(null)} className="tap" style={miniBtn(C.line, C.sub)}><X size={14} /></button>
                             </div>
@@ -383,7 +384,7 @@ export default function App() {
                         <div className="flex flex-col" style={{ gap: 6 }}>
                           <input value={newItem.n} onChange={(e) => setNewItem((v) => ({ ...v, n: e.target.value }))} placeholder="항목 이름" autoFocus style={{ width: "100%", fontSize: 13, border: `1px solid ${C.line}`, borderRadius: 9, padding: "10px 10px", background: "#fff" }} />
                           <BankSelect value={newItem.acc} onChange={(val) => setNewItem((v) => ({ ...v, acc: val }))} placeholder="어느 은행" />
-                          <input value={newItem.a} onChange={(e) => setNewItem((v) => ({ ...v, a: e.target.value.replace(/[^0-9]/g, "") }))} inputMode="numeric" placeholder="금액" className="num" style={{ width: "100%", fontSize: 13, fontWeight: 700, border: `1px solid ${C.line}`, borderRadius: 9, padding: "10px 10px", background: "#fff" }} />
+                          <input value={fmtInput(newItem.a)} onChange={(e) => setNewItem((v) => ({ ...v, a: e.target.value.replace(/[^0-9]/g, "") }))} inputMode="numeric" placeholder="금액" className="num" style={{ width: "100%", fontSize: 13, fontWeight: 700, border: `1px solid ${C.line}`, borderRadius: 9, padding: "10px 10px", background: "#fff" }} />
                           <div className="flex" style={{ gap: 6 }}>
                             <button onClick={() => confirmAdd(c.id)} className="tap flex items-center justify-center gap-1" style={{ flex: 1, background: c.color, color: "#fff", border: "none", borderRadius: 9, padding: "11px 0", fontWeight: 700, fontSize: 13 }}><Check size={14} /> 추가</button>
                             <button onClick={() => setAddingTo(null)} className="tap" style={miniBtn(C.line, C.sub, 40)}><X size={15} /></button>
@@ -473,7 +474,7 @@ export default function App() {
           <div className="flex items-center justify-between" style={{ marginTop: 8, background: C.soft, borderRadius: 10, padding: "9px 12px" }}>
             <span style={{ fontSize: 12.5, color: C.sub }}>현재 모은 돈(시작값)</span>
             <div className="flex items-center" style={{ gap: 6 }}>
-              <input value={startSaved} onChange={(e) => setStartSaved(parseInt(e.target.value.replace(/[^0-9]/g, ""), 10) || 0)} inputMode="numeric" className="num" style={{ width: 116, fontSize: 13, fontWeight: 700, border: `1px solid ${C.line}`, borderRadius: 8, padding: "4px 8px", background: "#fff", textAlign: "right" }} />
+              <input value={fmtInput(startSaved)} onChange={(e) => setStartSaved(parseInt(e.target.value.replace(/[^0-9]/g, ""), 10) || 0)} inputMode="numeric" className="num" style={{ width: 116, fontSize: 13, fontWeight: 700, border: `1px solid ${C.line}`, borderRadius: 8, padding: "4px 8px", background: "#fff", textAlign: "right" }} />
               <span style={{ fontSize: 12.5, color: C.sub }}>원</span>
             </div>
           </div>
@@ -539,7 +540,7 @@ export default function App() {
           <div className="flex flex-col" style={{ gap: 8 }}>
             <input value={ledgerForm.memo} onChange={(e) => setLedgerForm((f) => ({ ...f, memo: e.target.value }))} placeholder="어디에 썼나요?"
               style={{ width: "100%", fontSize: 14, border: `1px solid ${C.line}`, borderRadius: 11, padding: "11px 12px", background: C.soft }} />
-            <input value={ledgerForm.amount} onChange={(e) => setLedgerForm((f) => ({ ...f, amount: e.target.value.replace(/[^0-9]/g, "") }))} inputMode="numeric" placeholder="금액" className="num"
+            <input value={fmtInput(ledgerForm.amount)} onChange={(e) => setLedgerForm((f) => ({ ...f, amount: e.target.value.replace(/[^0-9]/g, "") }))} inputMode="numeric" placeholder="금액" className="num"
               style={{ width: "100%", fontSize: 14, fontWeight: 700, border: `1px solid ${C.line}`, borderRadius: 11, padding: "11px 12px", background: C.soft }} />
             <button onClick={addLedger} className="tap flex items-center justify-center" style={{ width: "100%", gap: 6, background: C.hero, color: "#fff", border: "none", borderRadius: 11, padding: "12px 0", fontWeight: 700, fontSize: 14 }}><Plus size={17} /> 추가</button>
           </div>

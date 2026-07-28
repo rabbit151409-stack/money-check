@@ -220,9 +220,9 @@ export default function App() {
         * { max-width: 100%; }
         .app-container { width: 100%; max-width: 460px; margin: 0 auto; padding: 22px 18px 104px; }
         .hero-amt { font-size: clamp(34px, 11vw, 44px); }
-        .bottom-nav { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 50; width: fit-content; max-width: calc(100% - 24px); box-sizing: border-box; }
-        .nav-btn { display: flex; align-items: center; gap: 7px; border: none; cursor: pointer; font-weight: 700; border-radius: 999px; white-space: nowrap; flex-shrink: 0; font-size: 13.5px; padding: 11px 22px; }
-        .nav-btn.inactive { padding: 11px 15px; }
+        .bottom-nav { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 50; width: calc(100% - 32px); max-width: 380px; box-sizing: border-box; }
+        .nav-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px; border: none; cursor: pointer; font-weight: 700; border-radius: 999px; white-space: nowrap; font-size: 13.5px; padding: 9px 12px; line-height: 1; }
+        .nav-btn.inactive { padding: 9px 14px; }
         @media (max-width: 360px) {
           .app-container { padding: 16px 13px 100px; }
           .bottom-nav { bottom: 12px; }
@@ -694,7 +694,7 @@ export default function App() {
           return (
             <button key={p} onClick={() => setPage(p)} className="tap nav-btn" style={{
               background: active ? "#FFFFFF" : "transparent", color: active ? C.ink : "rgba(255,255,255,0.6)" }}>
-              <Icon size={18} /> <span style={{ whiteSpace: "nowrap" }}>{label}</span>
+              <Icon size={18} /> {active && <span style={{ whiteSpace: "nowrap" }}>{label}</span>}
             </button>
           );
         })}

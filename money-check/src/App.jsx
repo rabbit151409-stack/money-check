@@ -1,8 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
 import {
-  LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid,
-} from "recharts";
-import {
   PiggyBank, Landmark, Home, Repeat, Wallet, Coins, Plus, Check, Pencil, X,
   ChevronDown, CalendarDays, TrendingUp, Trash2, Building2, ArrowRight,
   NotebookPen, ArrowLeft, Circle, CheckCircle2,
@@ -73,6 +70,7 @@ export default function App() {
   const [editLedgerId, setEditLedgerId] = useState(null);
   const [editLedgerDraft, setEditLedgerDraft] = useState({ type: "expense", memo: "", amount: "", date: "" });
   const [tab, setTab] = useState("bank");
+  const [savingsYear, setSavingsYear] = useState(2026);
   const [editPayday, setEditPayday] = useState(false);
   const [paydayDraft, setPaydayDraft] = useState(String(payday));
 
@@ -127,15 +125,17 @@ export default function App() {
     const arr = [];
     const base = new Date(2026, 6, 1);
     const startWithLedger = currentAsset;
-    for (let i = 0; i < 18; i++) {
+    for (let i = 0; i < 60; i++) {
       const d = new Date(base.getFullYear(), base.getMonth() + i, 1);
       arr.push({
-        m: `${String(d.getFullYear()).slice(2)}/${String(d.getMonth() + 1).padStart(2, "0")}`,
+        year: d.getFullYear(),
+        label: `${d.getFullYear()}년 ${d.getMonth() + 1}월`,
         saved: startWithLedger + saveSum * i,
       });
     }
     return arr;
-  }, [saveSum, startSaved, ledgerIncome, ledgerExpense, life]);
+  }, [saveSum, startSaved, ledgerIncome, ledgerExpense, life, currentAsset]);
+  const savingsYears = useMemo(() => Array.from(new Set(chartData.map((r) => r.year))), [chartData]);
 
   // ---- actions ----
   const toggle = (id) => setOpen((o) => ({ ...o, [id]: !o[id] }));
@@ -634,25 +634,28 @@ export default function App() {
           </div>
         </div>
 
-        {/* 월별 누적 저축 그래프 */}
+        {/* 월별 누적 저축 (리스트) */}
         <div style={{ background: C.card, borderRadius: 20, border: `1px solid ${C.line}`, padding: "18px 16px 14px", marginBottom: 14 }}>
           <div className="flex items-center justify-between" style={{ marginBottom: 4 }}>
             <div className="flex items-center" style={{ gap: 7 }}><TrendingUp size={16} color={C.hero} /><span style={{ fontSize: 14, fontWeight: 700 }}>월별 누적 저축</span></div>
-            <span className="num" style={{ fontSize: 12, color: C.sub }}>매월 +{won(saveSum)}원</span>
+            <select value={savingsYear} onChange={(e) => setSavingsYear(Number(e.target.value))}
+              style={{ fontSize: 12.5, fontWeight: 700, color: C.hero, border: `1px solid ${C.line}`, borderRadius: 9, padding: "6px 26px 6px 10px", background: "#fff",
+                appearance: "none", WebkitAppearance: "none", cursor: "pointer",
+                backgroundImage: "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238E8E93' stroke-width='2.5'><polyline points='6 9 12 15 18 9'/></svg>\")",
+                backgroundRepeat: "no-repeat", backgroundPosition: "right 8px center" }}>
+              {savingsYears.map((y) => <option key={y} value={y}>{y}년</option>)}
+            </select>
           </div>
           <div style={{ fontSize: 11.5, color: C.sub, marginBottom: 10 }}>'모으는 돈'이 매달 쌓이고, 가계부의 수입·지출도 반영돼요</div>
-          <div style={{ width: "100%", height: 200 }}>
-            <ResponsiveContainer>
-              <LineChart data={chartData} margin={{ top: 6, right: 8, left: 6, bottom: 0 }}>
-                <CartesianGrid stroke={C.soft} vertical={false} />
-                <XAxis dataKey="m" tick={{ fontSize: 10, fill: C.sub }} interval={2} axisLine={false} tickLine={false} />
-                <YAxis tickFormatter={(v) => `${Math.round(v / 10000)}만`} tick={{ fontSize: 10, fill: C.sub }} width={44} axisLine={false} tickLine={false} />
-                <Tooltip formatter={(v) => [`${won(v)}원`, "누적 저축"]} labelFormatter={(l) => `20${l}`} contentStyle={{ borderRadius: 12, border: `1px solid ${C.line}`, fontSize: 12 }} />
-                <Line type="monotone" dataKey="saved" stroke={C.hero} strokeWidth={2.5} dot={false} activeDot={{ r: 5, fill: C.hero }} />
-              </LineChart>
-            </ResponsiveContainer>
+          <div style={{ maxHeight: 230, overflowY: "auto" }}>
+            {chartData.filter((r) => r.year === savingsYear).map((r, i) => (
+              <div key={r.label} className="flex items-center justify-between" style={{ padding: "12px 2px", borderTop: i > 0 ? `1px solid ${C.soft}` : "none" }}>
+                <span className="num" style={{ fontSize: 13.5, color: C.ink }}>{r.label}</span>
+                <span className="num" style={{ fontSize: 14, fontWeight: 700 }}>{won(r.saved)}원</span>
+              </div>
+            ))}
           </div>
-          <div className="num flex justify-between" style={{ fontSize: 12, marginTop: 8, background: C.soft, borderRadius: 10, padding: "9px 12px" }}>
+          <div className="num flex justify-between" style={{ fontSize: 12, marginTop: 10, background: C.soft, borderRadius: 10, padding: "9px 12px" }}>
             <span style={{ color: C.sub }}>1년 뒤 예상</span><span style={{ fontWeight: 700 }}>{won(currentAsset + saveSum * 12)}원</span>
           </div>
         </div>

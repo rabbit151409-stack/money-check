@@ -5,5 +5,5 @@ import react from "@vitejs/plugin-react";
 // Vercel / Netlify로 배포한다면 base는 "/" 로 두거나 이 줄을 지워도 됩니다.
 export default defineConfig({
   plugins: [react()],
-  base: "/money-check/",
+  base: "/",
 });

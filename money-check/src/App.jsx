@@ -1,11 +1,11 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid,
 } from "recharts";
 import {
   PiggyBank, Landmark, Home, Repeat, Wallet, Coins, Plus, Check, Pencil, X,
   ChevronDown, CalendarDays, TrendingUp, Trash2, Building2, ArrowRight,
-  NotebookPen, ArrowLeft,
+  NotebookPen, ArrowLeft, Circle, CheckCircle2,
 } from "lucide-react";
 
 const C = {
@@ -33,6 +33,15 @@ const INIT_CATS = [];
 
 const won = (n) => Math.round(n).toLocaleString("ko-KR");
 const sumItems = (items) => items.reduce((s, x) => s + (x.a || 0), 0);
+const STORAGE_KEY = "moneycheck_v1";
+function loadStore() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
 function todayStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -40,11 +49,11 @@ function todayStr() {
 const fmtDate = (s) => { const [, m, d] = s.split("-"); return `${Number(m)}/${Number(d)}`; };
 
 export default function App() {
-  const [cats, setCats] = useState(INIT_CATS);
-  const [payday, setPayday] = useState(25);
-  const [payAccount, setPayAccount] = useState("");
-  const [startSaved, setStartSaved] = useState(0);
-  const [records, setRecords] = useState([]);
+  const [cats, setCats] = useState(() => loadStore().cats ?? INIT_CATS);
+  const [payday, setPayday] = useState(() => loadStore().payday ?? 25);
+  const [payAccount, setPayAccount] = useState(() => loadStore().payAccount ?? "");
+  const [startSaved, setStartSaved] = useState(() => loadStore().startSaved ?? 0);
+  const [records, setRecords] = useState(() => loadStore().records ?? []);
 
   const [open, setOpen] = useState({ save: true });
   const [edit, setEdit] = useState(null);
@@ -57,11 +66,17 @@ export default function App() {
   const [showRecords, setShowRecords] = useState(false);
   const [showAllocBar, setShowAllocBar] = useState(true);
   const [page, setPage] = useState("home");
-  const [ledger, setLedger] = useState([]);
+  const [ledger, setLedger] = useState(() => loadStore().ledger ?? []);
   const [ledgerForm, setLedgerForm] = useState({ type: "expense", memo: "", amount: "", date: todayStr() });
   const [tab, setTab] = useState("bank");
   const [editPayday, setEditPayday] = useState(false);
   const [paydayDraft, setPaydayDraft] = useState(String(payday));
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ cats, payday, payAccount, startSaved, records, ledger }));
+    } catch {}
+  }, [cats, payday, payAccount, startSaved, records, ledger]);
 
   const salary = records.length ? records[0].amount : 0;
 
@@ -117,6 +132,9 @@ export default function App() {
   function delItem(catId, idx) {
     setCats((prev) => prev.map((c) => c.id === catId ? { ...c, items: c.items.filter((_, i) => i !== idx) } : c));
     if (edit && edit.startsWith(`${catId}:`)) setEdit(null);
+  }
+  function toggleDone(catId, idx) {
+    setCats((prev) => prev.map((c) => c.id === catId ? { ...c, items: c.items.map((it, i) => i === idx ? { ...it, done: !it.done } : it) } : c));
   }
   function startAdd(catId) { setAddingTo(catId); setNewItem({ n: "", acc: "", a: "" }); setOpen((o) => ({ ...o, [catId]: true })); }
   function confirmAdd(catId) {
@@ -309,7 +327,7 @@ export default function App() {
                         {c.name}
                         <span style={{ fontSize: 10, fontWeight: 700, color: KIND_COLOR[c.kind], background: KIND_COLOR[c.kind] + "1A", padding: "2px 6px", borderRadius: 6 }}>{tagOf(c)}</span>
                       </div>
-                      <div className="num" style={{ fontSize: 12, color: C.sub, marginTop: 1 }}>{c.items.length}개 항목{c.day ? ` · 매월 ${c.day}일` : ""}</div>
+                      <div className="num" style={{ fontSize: 12, color: C.sub, marginTop: 1 }}>{c.items.length === 0 ? "0개 항목" : `완료 ${c.items.filter((it) => it.done).length}/${c.items.length}`}{c.day ? ` · 매월 ${c.day}일` : ""}</div>
                     </div>
                   </div>
                   <div className="flex items-center" style={{ gap: 8 }}>
@@ -339,15 +357,20 @@ export default function App() {
                       }
                       return (
                         <div key={idx} className="flex items-center justify-between" style={{ padding: "9px 0", borderBottom: idx < c.items.length - 1 ? `1px solid ${C.soft}` : "none" }}>
-                          <div>
-                            <div style={{ fontSize: 13.5, fontWeight: 500 }}>{it.n}</div>
-                            <div className="flex items-center" style={{ gap: 4, fontSize: 11, color: C.sub, marginTop: 2 }}>
-                              <Building2 size={11} /><span>{it.acc}{it.day ? ` · ${it.day}일` : ""}</span>
+                          <div className="flex items-center" style={{ gap: 10 }}>
+                            <button onClick={() => toggleDone(c.id, idx)} className="tap" style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "flex", flexShrink: 0 }} title={it.done ? "완료 취소" : "완료 체크"}>
+                              {it.done ? <CheckCircle2 size={22} color={c.color} fill={c.color} strokeWidth={0} /> : <Circle size={22} color={C.line} />}
+                            </button>
+                            <div>
+                              <div style={{ fontSize: 13.5, fontWeight: 500, color: it.done ? C.sub : C.ink, textDecoration: it.done ? "line-through" : "none" }}>{it.n}</div>
+                              <div className="flex items-center" style={{ gap: 4, fontSize: 11, color: C.sub, marginTop: 2 }}>
+                                <Building2 size={11} /><span>{it.acc}{it.day ? ` · ${it.day}일` : ""}</span>
+                              </div>
                             </div>
                           </div>
                           <div className="flex items-center" style={{ gap: 4 }}>
                             <button onClick={() => startEdit(c.id, idx, it)} className="tap num flex items-center" style={{ gap: 5, background: "none", border: "none", cursor: "pointer" }}>
-                              <span style={{ fontSize: 13.5, fontWeight: 700 }}>{won(it.a)}원</span><Pencil size={12} color={C.sub} />
+                              <span style={{ fontSize: 13.5, fontWeight: 700, color: it.done ? C.sub : C.ink }}>{won(it.a)}원</span><Pencil size={12} color={C.sub} />
                             </button>
                             <button onClick={() => delItem(c.id, idx)} className="tap" style={{ background: "none", border: "none", color: "#C7CDCB", padding: 3, cursor: "pointer", display: "flex" }} title="삭제"><Trash2 size={14} /></button>
                           </div>
@@ -357,14 +380,14 @@ export default function App() {
 
                     {addingTo === c.id ? (
                       <div style={{ marginTop: 10, background: C.soft, borderRadius: 12, padding: "12px" }}>
-                        <div className="flex" style={{ gap: 6, marginBottom: 6 }}>
-                          <input value={newItem.n} onChange={(e) => setNewItem((v) => ({ ...v, n: e.target.value }))} placeholder="항목 이름" autoFocus style={{ flex: 1.3, fontSize: 13, border: `1px solid ${C.line}`, borderRadius: 9, padding: "8px 10px", background: "#fff" }} />
+                        <div className="flex flex-col" style={{ gap: 6 }}>
+                          <input value={newItem.n} onChange={(e) => setNewItem((v) => ({ ...v, n: e.target.value }))} placeholder="항목 이름" autoFocus style={{ width: "100%", fontSize: 13, border: `1px solid ${C.line}`, borderRadius: 9, padding: "10px 10px", background: "#fff" }} />
                           <BankSelect value={newItem.acc} onChange={(val) => setNewItem((v) => ({ ...v, acc: val }))} placeholder="어느 은행" />
-                        </div>
-                        <div className="flex" style={{ gap: 6 }}>
-                          <input value={newItem.a} onChange={(e) => setNewItem((v) => ({ ...v, a: e.target.value.replace(/[^0-9]/g, "") }))} inputMode="numeric" placeholder="금액" className="num" style={{ flex: 1, fontSize: 13, fontWeight: 700, border: `1px solid ${C.line}`, borderRadius: 9, padding: "8px 10px", background: "#fff" }} />
-                          <button onClick={() => confirmAdd(c.id)} className="tap flex items-center gap-1" style={{ background: c.color, color: "#fff", border: "none", borderRadius: 9, padding: "0 14px", fontWeight: 700, fontSize: 13 }}><Check size={14} /> 추가</button>
-                          <button onClick={() => setAddingTo(null)} className="tap" style={miniBtn(C.line, C.sub)}><X size={14} /></button>
+                          <input value={newItem.a} onChange={(e) => setNewItem((v) => ({ ...v, a: e.target.value.replace(/[^0-9]/g, "") }))} inputMode="numeric" placeholder="금액" className="num" style={{ width: "100%", fontSize: 13, fontWeight: 700, border: `1px solid ${C.line}`, borderRadius: 9, padding: "10px 10px", background: "#fff" }} />
+                          <div className="flex" style={{ gap: 6 }}>
+                            <button onClick={() => confirmAdd(c.id)} className="tap flex items-center justify-center gap-1" style={{ flex: 1, background: c.color, color: "#fff", border: "none", borderRadius: 9, padding: "11px 0", fontWeight: 700, fontSize: 13 }}><Check size={14} /> 추가</button>
+                            <button onClick={() => setAddingTo(null)} className="tap" style={miniBtn(C.line, C.sub, 40)}><X size={15} /></button>
+                          </div>
                         </div>
                       </div>
                     ) : (

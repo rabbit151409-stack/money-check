@@ -220,9 +220,14 @@ export default function App() {
         * { max-width: 100%; }
         .app-container { width: 100%; max-width: 460px; margin: 0 auto; padding: 22px 18px 104px; }
         .hero-amt { font-size: clamp(34px, 11vw, 44px); }
-        .bottom-nav { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 50; }
+        .bottom-nav { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 50; max-width: calc(100% - 24px); box-sizing: border-box; }
+        .nav-btn { display: flex; align-items: center; gap: 7px; border: none; cursor: pointer; font-weight: 700; border-radius: 999px; white-space: nowrap; flex-shrink: 0; font-size: 13.5px; padding: 11px 22px; }
+        .nav-btn.inactive { padding: 11px 15px; }
         @media (max-width: 360px) {
           .app-container { padding: 16px 13px 100px; }
+          .bottom-nav { bottom: 12px; }
+          .nav-btn { font-size: 12px; padding: 10px 15px; gap: 5px; }
+          .nav-btn.inactive { padding: 10px 11px; }
         }
         @media (min-width: 700px) {
           .app-container { max-width: 500px; padding-top: 32px; }
@@ -687,10 +692,8 @@ export default function App() {
         {[["home", "홈", Home], ["ledger", "가계부", NotebookPen], ["savings", "저축", TrendingUp]].map(([p, label, Icon]) => {
           const active = page === p;
           return (
-            <button key={p} onClick={() => setPage(p)} className="tap flex items-center" style={{
-              gap: 7, padding: active ? "11px 22px" : "11px 15px", borderRadius: 999, border: "none", cursor: "pointer",
-              background: active ? "#FFFFFF" : "transparent", color: active ? C.ink : "rgba(255,255,255,0.6)",
-              fontWeight: 700, fontSize: 13.5, whiteSpace: "nowrap", flexShrink: 0 }}>
+            <button key={p} onClick={() => setPage(p)} className={`tap nav-btn${active ? "" : " inactive"}`} style={{
+              background: active ? "#FFFFFF" : "transparent", color: active ? C.ink : "rgba(255,255,255,0.6)" }}>
               <Icon size={18} /> {active && <span style={{ whiteSpace: "nowrap" }}>{label}</span>}
             </button>
           );

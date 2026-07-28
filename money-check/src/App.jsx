@@ -4,7 +4,7 @@ import {
 } from "recharts";
 import {
   PiggyBank, Landmark, Home, Repeat, Wallet, Coins, Plus, Check, Pencil, X,
-  ChevronDown, CalendarDays, TrendingUp, Utensils, Trash2, Building2, ArrowRight,
+  ChevronDown, CalendarDays, TrendingUp, Trash2, Building2, ArrowRight,
   NotebookPen, ArrowLeft,
 } from "lucide-react";
 
@@ -29,35 +29,7 @@ const iconOf = (c) => ICON_MAP[c.iconKey] || (c.kind === "save" ? PiggyBank : Co
 const tagOf = (c) => (c.kind === "save" ? "모으는 돈" : "나가는 돈");
 const KIND_COLOR = { save: "#31B54C", out: "#FF524D" };
 
-const INIT_CATS = [
-  { id: "save", name: "예/적금", kind: "save", color: "#43B4FB", iconKey: "piggy", day: 6, items: [
-    { n: "청년미래적금", a: 500000, acc: "기업은행" },
-    { n: "월급통장대우 적금", a: 200000, acc: "하나은행" },
-    { n: "주택청약", a: 100000, acc: "기업은행" },
-    { n: "여행", a: 100000, acc: "케이뱅크" },
-    { n: "하나 내맘", a: 200000, acc: "하나은행" },
-  ]},
-  { id: "park", name: "파킹통장", kind: "save", color: "#31B54C", iconKey: "landmark", day: 6, items: [
-    { n: "케이뱅크 파킹통장", a: 400000, acc: "케이뱅크" },
-  ]},
-  { id: "fixed", name: "고정비", kind: "out", color: "#FF8637", iconKey: "home", items: [
-    { n: "월세", a: 200000, acc: "케이뱅크" },
-    { n: "관리비", a: 100000, acc: "케이뱅크" },
-    { n: "이자", a: 50000, acc: "카카오뱅크" },
-    { n: "교통비", a: 50000, acc: "케이뱅크" },
-    { n: "핸드폰", a: 38190, acc: "케이뱅크" },
-    { n: "보험", a: 55890, acc: "케이뱅크" },
-  ]},
-  { id: "sub", name: "구독료", kind: "out", color: "#DB95FD", iconKey: "repeat", items: [
-    { n: "아이클라우드", a: 14000, acc: "케이뱅크" },
-    { n: "구글드라이브", a: 2400, acc: "케이뱅크", day: 4 },
-    { n: "배민클럽(+티빙)", a: 5490, acc: "케이뱅크" },
-    { n: "이모티콘", a: 3900, acc: "케이뱅크" },
-    { n: "디즈니플러스", a: 9900, acc: "케이뱅크" },
-    { n: "유튜브프리미엄", a: 14000, acc: "케이뱅크", day: 26 },
-    { n: "클로드코드", a: 35000, acc: "케이뱅크", day: 13 },
-  ]},
-];
+const INIT_CATS = [];
 
 const won = (n) => Math.round(n).toLocaleString("ko-KR");
 const sumItems = (items) => items.reduce((s, x) => s + (x.a || 0), 0);
@@ -70,10 +42,9 @@ const fmtDate = (s) => { const [, m, d] = s.split("-"); return `${Number(m)}/${N
 export default function App() {
   const [cats, setCats] = useState(INIT_CATS);
   const [payday, setPayday] = useState(25);
-  const [payAccount, setPayAccount] = useState("하나은행");
-  const [foodBudget, setFoodBudget] = useState(150000);
-  const [startSaved, setStartSaved] = useState(11859789);
-  const [records, setRecords] = useState([{ id: 1, ym: "2026-07", day: 25, amount: 2730450 }]);
+  const [payAccount, setPayAccount] = useState("");
+  const [startSaved, setStartSaved] = useState(0);
+  const [records, setRecords] = useState([]);
 
   const [open, setOpen] = useState({ save: true });
   const [edit, setEdit] = useState(null);
@@ -101,7 +72,6 @@ export default function App() {
   const saveSum = useMemo(() => cats.filter((c) => c.kind === "save").reduce((s, c) => s + sumItems(c.items), 0), [cats]);
   const outSum = useMemo(() => cats.filter((c) => c.kind === "out").reduce((s, c) => s + sumItems(c.items), 0), [cats]);
   const life = salary - saveSum - outSum;
-  const lifeAfterFood = life - foodBudget;
 
   const ledgerExpense = useMemo(() => ledger.filter((e) => e.type === "expense").reduce((s, e) => s + e.amount, 0), [ledger]);
   const ledgerIncome = useMemo(() => ledger.filter((e) => e.type === "income").reduce((s, e) => s + e.amount, 0), [ledger]);
@@ -225,9 +195,7 @@ export default function App() {
             <span className="hero-amt" style={{ fontWeight: 900, color: C.accent, lineHeight: 1 }}>{won(life)}</span>
             <span style={{ fontSize: 19, fontWeight: 700, color: "rgba(255,255,255,0.7)" }}>원</span>
           </div>
-          <div className="num" style={{ fontSize: 12.5, color: "rgba(255,255,255,0.5)", marginTop: 8, display: "flex", alignItems: "center", gap: 6 }}>
-            <Utensils size={13} /> 식비 {won(foodBudget)}원 빼면 여유 <b style={{ color: "#FFFFFF" }}>{won(lifeAfterFood)}원</b>
-          </div>
+          {(saveSum + outSum) > 0 && (<>
           <button onClick={() => setShowAllocBar((s) => !s)} className="tap flex items-center justify-between"
             style={{ width: "100%", marginTop: 18, background: "rgba(255,255,255,0.08)", border: "none", borderRadius: 12, padding: "10px 12px", cursor: "pointer" }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.75)" }}>이번 달 배분 비율</span>
@@ -247,6 +215,7 @@ export default function App() {
             </div>
           </div>
           )}
+          </>)}
         </div>
 
         {/* 월급 기록 + 급여통장 */}
@@ -428,28 +397,6 @@ export default function App() {
           ) : (
             <button onClick={() => setShowAddCat(true)} className="tap flex items-center justify-center gap-1.5" style={{ width: "100%", background: "none", border: `1.5px dashed ${C.line}`, borderRadius: 16, padding: "14px 0", color: C.hero, fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}><Plus size={16} /> 카테고리 추가</button>
           )}
-
-          {/* 생활비(계산됨) */}
-          <div style={{ background: C.card, borderRadius: 16, border: `1px solid ${C.line}`, padding: "14px 16px", position: "relative" }}>
-            <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 5, background: "#FF524D" }} />
-            <div className="flex items-center justify-between">
-              <div className="flex items-center" style={{ gap: 11 }}>
-                <div style={{ width: 38, height: 38, borderRadius: 11, background: "#FF524D1A", display: "flex", alignItems: "center", justifyContent: "center" }}><Wallet size={19} color="#FF524D" /></div>
-                <div><div style={{ fontWeight: 700, fontSize: 15 }}>생활비</div><div style={{ fontSize: 12, color: C.sub, marginTop: 1 }}>월급에서 자동 계산 · {payAccount}에 남김</div></div>
-              </div>
-              <span className="num" style={{ fontWeight: 900, fontSize: 15, color: "#FF524D" }}>{won(life)}<span style={{ fontSize: 11, fontWeight: 700, color: C.sub }}> 원</span></span>
-            </div>
-            <div className="flex items-center justify-between" style={{ marginTop: 12, background: C.soft, borderRadius: 10, padding: "8px 11px" }}>
-              <span className="flex items-center gap-1" style={{ fontSize: 12.5, color: C.sub }}><Utensils size={13} /> 식비 예산</span>
-              <div className="flex items-center" style={{ gap: 6 }}>
-                <input value={foodBudget} onChange={(e) => setFoodBudget(parseInt(e.target.value.replace(/[^0-9]/g, ""), 10) || 0)} inputMode="numeric" className="num" style={{ width: 90, fontSize: 13, fontWeight: 700, border: `1px solid ${C.line}`, borderRadius: 8, padding: "4px 8px", background: "#fff", textAlign: "right" }} />
-                <span style={{ fontSize: 12.5, color: C.sub }}>원</span>
-              </div>
-            </div>
-            <button onClick={() => setPage("ledger")} className="tap flex items-center justify-center" style={{ width: "100%", gap: 7, marginTop: 10, background: C.hero, color: "#fff", border: "none", borderRadius: 12, padding: "11px 0", fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}>
-              <NotebookPen size={16} /> 가계부 열기
-            </button>
-          </div>
         </div>
         </>)}
 
@@ -461,7 +408,7 @@ export default function App() {
             <span style={{ fontSize: 14, fontWeight: 700 }}>은행별 넣을 금액</span>
           </div>
           <div className="flex items-center" style={{ gap: 6, fontSize: 11.5, color: C.sub, marginBottom: 12 }}>
-            <span style={{ fontWeight: 700, color: C.hero }}>{payAccount}</span><ArrowRight size={12} /> 아래 통장으로 매달 이체
+            <span style={{ fontWeight: 700, color: C.hero }}>{payAccount || "급여통장"}</span><ArrowRight size={12} /> 아래 통장으로 매달 이체
           </div>
           <div className="flex flex-col" style={{ gap: 2 }}>
             {bankRows.map((b) => (

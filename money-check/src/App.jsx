@@ -69,6 +69,9 @@ export default function App() {
   const [page, setPage] = useState("home");
   const [ledger, setLedger] = useState(() => loadStore().ledger ?? []);
   const [ledgerForm, setLedgerForm] = useState({ type: "expense", memo: "", amount: "", date: todayStr() });
+  const [ledgerMonth, setLedgerMonth] = useState(todayStr().slice(0, 7));
+  const [editLedgerId, setEditLedgerId] = useState(null);
+  const [editLedgerDraft, setEditLedgerDraft] = useState({ type: "expense", memo: "", amount: "", date: "" });
   const [tab, setTab] = useState("bank");
   const [editPayday, setEditPayday] = useState(false);
   const [paydayDraft, setPaydayDraft] = useState(String(payday));
@@ -94,8 +97,16 @@ export default function App() {
   const availableNow = salary - checkedSum;
 
   const ledgerExpense = useMemo(() => ledger.filter((e) => e.type === "expense").reduce((s, e) => s + e.amount, 0), [ledger]);
+  const ledgerMonths = useMemo(() => {
+    const set = new Set(ledger.map((e) => e.date.slice(0, 7)));
+    set.add(todayStr().slice(0, 7));
+    return Array.from(set).sort().reverse();
+  }, [ledger]);
+  const filteredLedger = useMemo(() => ledger.filter((e) => e.date.slice(0, 7) === ledgerMonth), [ledger, ledgerMonth]);
   const ledgerIncome = useMemo(() => ledger.filter((e) => e.type === "income").reduce((s, e) => s + e.amount, 0), [ledger]);
   const ledgerLeft = life - ledgerExpense + ledgerIncome;
+  const ledgerNet = ledgerIncome - ledgerExpense;
+  const currentAsset = startSaved + life + ledgerNet;
 
   const segments = [
     ...cats.map((c) => ({ id: c.id, label: c.name, amt: catTotals[c.id] || 0, color: c.color })),
@@ -115,7 +126,7 @@ export default function App() {
   const chartData = useMemo(() => {
     const arr = [];
     const base = new Date(2026, 6, 1);
-    const startWithLedger = startSaved + ledgerIncome - ledgerExpense;
+    const startWithLedger = currentAsset;
     for (let i = 0; i < 18; i++) {
       const d = new Date(base.getFullYear(), base.getMonth() + i, 1);
       arr.push({
@@ -124,7 +135,7 @@ export default function App() {
       });
     }
     return arr;
-  }, [saveSum, startSaved, ledgerIncome, ledgerExpense]);
+  }, [saveSum, startSaved, ledgerIncome, ledgerExpense, life]);
 
   // ---- actions ----
   const toggle = (id) => setOpen((o) => ({ ...o, [id]: !o[id] }));
@@ -178,10 +189,22 @@ export default function App() {
   function addLedger() {
     const amt = parseInt(String(ledgerForm.amount).replace(/[^0-9]/g, ""), 10);
     if (!amt) return;
-    setLedger((prev) => [{ id: Date.now(), type: ledgerForm.type, memo: ledgerForm.memo.trim() || (ledgerForm.type === "expense" ? "지출" : "수입"), amount: amt, date: ledgerForm.date || todayStr() }, ...prev]);
+    const date = ledgerForm.date || todayStr();
+    setLedger((prev) => [{ id: Date.now(), type: ledgerForm.type, memo: ledgerForm.memo.trim() || (ledgerForm.type === "expense" ? "지출" : "수입"), amount: amt, date }, ...prev]);
     setLedgerForm((f) => ({ ...f, memo: "", amount: "" }));
+    setLedgerMonth(date.slice(0, 7));
   }
   const delLedger = (id) => setLedger((prev) => prev.filter((e) => e.id !== id));
+  function startEditLedger(e) {
+    setEditLedgerId(e.id);
+    setEditLedgerDraft({ type: e.type, memo: e.memo, amount: String(e.amount), date: e.date });
+  }
+  function updateLedger() {
+    const amt = parseInt(String(editLedgerDraft.amount).replace(/[^0-9]/g, ""), 10);
+    if (!amt) return;
+    setLedger((prev) => prev.map((e) => e.id === editLedgerId ? { ...e, type: editLedgerDraft.type, memo: editLedgerDraft.memo.trim() || (editLedgerDraft.type === "expense" ? "지출" : "수입"), amount: amt, date: editLedgerDraft.date || e.date } : e));
+    setEditLedgerId(null);
+  }
 
   return (
     <div style={{ background: C.bg, minHeight: "100vh", color: C.ink }}>
@@ -310,7 +333,7 @@ export default function App() {
 
         {/* 탭 바 */}
         <div className="flex" style={{ gap: 4, background: C.soft, borderRadius: 13, padding: 4, marginBottom: 14 }}>
-          {[["bank", "은행별 넣을 금액"], ["cats", "통장별 배분"], ["chart", "월별 누적 저축"]].map(([k, label]) => (
+          {[["bank", "은행별 넣을 금액"], ["cats", "통장별 배분"]].map(([k, label]) => (
             <button key={k} onClick={() => setTab(k)} className="tap"
               style={{ flex: 1, fontSize: 12.5, fontWeight: 700, padding: "9px 4px", borderRadius: 10, border: "none", cursor: "pointer",
                 background: tab === k ? C.card : "transparent", color: tab === k ? C.hero : C.sub,
@@ -462,38 +485,6 @@ export default function App() {
         </div>
         )}
 
-        {/* 월별 누적 저축 */}
-        {tab === "chart" && (
-        <div style={{ background: C.card, borderRadius: 20, border: `1px solid ${C.line}`, padding: "18px 16px 12px" }}>
-          <div className="flex items-center justify-between" style={{ marginBottom: 4 }}>
-            <div className="flex items-center" style={{ gap: 7 }}><TrendingUp size={16} color={C.hero} /><span style={{ fontSize: 14, fontWeight: 700 }}>월별 누적 저축</span></div>
-            <span className="num" style={{ fontSize: 12, color: C.sub }}>매월 +{won(saveSum)}원</span>
-          </div>
-          <div style={{ fontSize: 11.5, color: C.sub, marginBottom: 10 }}>'모으는 돈'이 매달 쌓이고, 가계부의 수입·지출도 반영돼요</div>
-          <div style={{ width: "100%", height: 190 }}>
-            <ResponsiveContainer>
-              <LineChart data={chartData} margin={{ top: 6, right: 8, left: 6, bottom: 0 }}>
-                <CartesianGrid stroke={C.soft} vertical={false} />
-                <XAxis dataKey="m" tick={{ fontSize: 10, fill: C.sub }} interval={2} axisLine={false} tickLine={false} />
-                <YAxis tickFormatter={(v) => `${Math.round(v / 10000)}만`} tick={{ fontSize: 10, fill: C.sub }} width={44} axisLine={false} tickLine={false} />
-                <Tooltip formatter={(v) => [`${won(v)}원`, "누적 저축"]} labelFormatter={(l) => `20${l}`} contentStyle={{ borderRadius: 12, border: `1px solid ${C.line}`, fontSize: 12 }} />
-                <Line type="monotone" dataKey="saved" stroke={C.hero} strokeWidth={2.5} dot={false} activeDot={{ r: 5, fill: C.hero }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="flex items-center justify-between" style={{ marginTop: 8, background: C.soft, borderRadius: 10, padding: "9px 12px" }}>
-            <span style={{ fontSize: 12.5, color: C.sub }}>현재 모은 돈(시작값)</span>
-            <div className="flex items-center" style={{ gap: 6 }}>
-              <input value={fmtInput(startSaved)} onChange={(e) => setStartSaved(parseInt(e.target.value.replace(/[^0-9]/g, ""), 10) || 0)} inputMode="numeric" className="num" style={{ width: 116, fontSize: 13, fontWeight: 700, border: `1px solid ${C.line}`, borderRadius: 8, padding: "4px 8px", background: "#fff", textAlign: "right" }} />
-              <span style={{ fontSize: 12.5, color: C.sub }}>원</span>
-            </div>
-          </div>
-          <div className="num flex justify-between" style={{ fontSize: 12, marginTop: 10, padding: "0 2px" }}>
-            <span style={{ color: C.sub }}>1년 뒤</span><span style={{ fontWeight: 700 }}>{won(startSaved + ledgerIncome - ledgerExpense + saveSum * 12)}원</span>
-          </div>
-        </div>
-        )}
-
         <div style={{ textAlign: "center", fontSize: 11, color: C.sub, marginTop: 22 }}>프로토타입 · 항목·카테고리를 자유롭게 추가/삭제할 수 있어요</div>
         </>)}
 
@@ -548,7 +539,7 @@ export default function App() {
               className="num" style={{ flex: 1, fontSize: 13, fontWeight: 600, border: `1px solid ${C.line}`, borderRadius: 10, padding: "9px 11px", background: C.soft, color: C.ink }} />
           </div>
           <div className="flex flex-col" style={{ gap: 8 }}>
-            <input value={ledgerForm.memo} onChange={(e) => setLedgerForm((f) => ({ ...f, memo: e.target.value }))} placeholder="어디에 썼나요?"
+            <input value={ledgerForm.memo} onChange={(e) => setLedgerForm((f) => ({ ...f, memo: e.target.value }))} placeholder={ledgerForm.type === "income" ? "어디서 들어왔나요?" : "어디에 썼나요?"}
               style={{ width: "100%", fontSize: 14, border: `1px solid ${C.line}`, borderRadius: 11, padding: "11px 12px", background: C.soft }} />
             <input value={fmtInput(ledgerForm.amount)} onChange={(e) => setLedgerForm((f) => ({ ...f, amount: e.target.value.replace(/[^0-9]/g, "") }))} inputMode="numeric" placeholder="금액" className="num"
               style={{ width: "100%", fontSize: 14, fontWeight: 700, border: `1px solid ${C.line}`, borderRadius: 11, padding: "11px 12px", background: C.soft }} />
@@ -556,22 +547,51 @@ export default function App() {
           </div>
         </div>
 
-        {/* 내역 리스트 */}
+        {/* 월별 내역 */}
         <div style={{ background: C.card, borderRadius: 20, border: `1px solid ${C.line}`, padding: "16px 18px" }}>
-          <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
-            <span style={{ fontSize: 14, fontWeight: 700 }}>이번 달 내역</span>
-            <span className="num" style={{ fontSize: 12, color: C.sub }}>{ledger.length}건</span>
+          <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
+            <span style={{ fontSize: 14, fontWeight: 700 }}>월별 내역</span>
+            <select value={ledgerMonth} onChange={(e) => setLedgerMonth(e.target.value)}
+              style={{ fontSize: 12.5, fontWeight: 700, color: C.hero, border: `1px solid ${C.line}`, borderRadius: 9, padding: "6px 26px 6px 10px", background: "#fff",
+                appearance: "none", WebkitAppearance: "none", cursor: "pointer",
+                backgroundImage: "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238E8E93' stroke-width='2.5'><polyline points='6 9 12 15 18 9'/></svg>\")",
+                backgroundRepeat: "no-repeat", backgroundPosition: "right 8px center" }}>
+              {ledgerMonths.map((m) => <option key={m} value={m}>{m.slice(0, 4)}년 {Number(m.slice(5, 7))}월</option>)}
+            </select>
           </div>
-          {ledger.length === 0 ? (
+          {filteredLedger.length === 0 ? (
             <div style={{ textAlign: "center", padding: "28px 0", color: C.sub, fontSize: 13 }}>
               <NotebookPen size={26} color={C.line} style={{ marginBottom: 8 }} />
-              <div>아직 기록이 없어요.<br />위에서 지출·수입을 적어보세요.</div>
+              <div>이 달엔 기록이 없어요.<br />위에서 지출·수입을 적어보세요.</div>
             </div>
           ) : (
             <div className="flex flex-col">
-              {ledger.map((e, i) => {
+              {filteredLedger.map((e, i) => {
                 const isExp = e.type === "expense";
                 const col = isExp ? "#FF524D" : "#31B54C";
+                if (editLedgerId === e.id) {
+                  return (
+                    <div key={e.id} style={{ margin: "8px 0", background: C.soft, borderRadius: 12, padding: "12px" }}>
+                      <div className="flex" style={{ gap: 6, marginBottom: 6 }}>
+                        {[["expense", "지출", "#FF524D"], ["income", "수입", "#31B54C"]].map(([t, label, c2]) => (
+                          <button key={t} onClick={() => setEditLedgerDraft((v) => ({ ...v, type: t }))} className="tap"
+                            style={{ flex: 1, fontSize: 12.5, fontWeight: 700, padding: "8px 0", borderRadius: 9, cursor: "pointer",
+                              border: `1px solid ${editLedgerDraft.type === t ? c2 : C.line}`, background: editLedgerDraft.type === t ? c2 + "14" : "#fff", color: editLedgerDraft.type === t ? c2 : C.sub }}>{label}</button>
+                        ))}
+                      </div>
+                      <input type="date" value={editLedgerDraft.date} onChange={(ev) => setEditLedgerDraft((v) => ({ ...v, date: ev.target.value }))} className="num"
+                        style={{ width: "100%", fontSize: 13, fontWeight: 600, border: `1px solid ${C.line}`, borderRadius: 9, padding: "9px 11px", background: "#fff", color: C.ink, marginBottom: 6 }} />
+                      <input value={editLedgerDraft.memo} onChange={(ev) => setEditLedgerDraft((v) => ({ ...v, memo: ev.target.value }))} placeholder={editLedgerDraft.type === "income" ? "어디서 들어왔나요?" : "어디에 썼나요?"}
+                        style={{ width: "100%", fontSize: 13, border: `1px solid ${C.line}`, borderRadius: 9, padding: "9px 11px", background: "#fff", marginBottom: 6 }} />
+                      <div className="flex" style={{ gap: 6 }}>
+                        <input value={fmtInput(editLedgerDraft.amount)} onChange={(ev) => setEditLedgerDraft((v) => ({ ...v, amount: ev.target.value.replace(/[^0-9]/g, "") }))} inputMode="numeric" placeholder="금액" className="num"
+                          style={{ flex: 1, fontSize: 13, fontWeight: 700, border: `1px solid ${C.line}`, borderRadius: 9, padding: "9px 11px", background: "#fff" }} />
+                        <button onClick={updateLedger} className="tap flex items-center gap-1" style={{ background: C.hero, color: "#fff", border: "none", borderRadius: 9, padding: "0 14px", fontWeight: 700, fontSize: 13 }}><Check size={14} /> 저장</button>
+                        <button onClick={() => setEditLedgerId(null)} className="tap" style={miniBtn(C.line, C.sub)}><X size={14} /></button>
+                      </div>
+                    </div>
+                  );
+                }
                 return (
                   <div key={e.id} className="flex items-center justify-between" style={{ padding: "11px 0", borderTop: i > 0 ? `1px solid ${C.soft}` : "none" }}>
                     <div className="flex items-center" style={{ gap: 11 }}>
@@ -583,8 +603,9 @@ export default function App() {
                         <div className="num" style={{ fontSize: 11.5, color: C.sub, marginTop: 1 }}>{fmtDate(e.date)}</div>
                       </div>
                     </div>
-                    <div className="flex items-center" style={{ gap: 8 }}>
+                    <div className="flex items-center" style={{ gap: 6 }}>
                       <span className="num" style={{ fontSize: 14.5, fontWeight: 700, color: col }}>{isExp ? "-" : "+"}{won(e.amount)}</span>
+                      <button onClick={() => startEditLedger(e)} className="tap" style={{ background: "none", border: "none", color: C.sub, padding: 3, cursor: "pointer", display: "flex" }}><Pencil size={13} /></button>
                       <button onClick={() => delLedger(e.id)} className="tap" style={{ background: "none", border: "none", color: "#C7CDCB", padding: 3, cursor: "pointer", display: "flex" }}><Trash2 size={14} /></button>
                     </div>
                   </div>
@@ -594,11 +615,78 @@ export default function App() {
           )}
         </div>
         </>)}
+
+        {page === "savings" && (<>
+        {/* 저축 헤더 */}
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 20, fontWeight: 900 }}>저축</div>
+        </div>
+
+        {/* 현재 자산 (상단 강조) */}
+        <div style={{ background: `linear-gradient(165deg, #26262A, ${C.heroDeep})`, borderRadius: 28, padding: "24px 24px 22px", color: "#FFFFFF", boxShadow: "0 20px 44px -20px rgba(0,0,0,0.45)", marginBottom: 14 }}>
+          <div style={{ fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.55)" }}>현재 자산</div>
+          <div className="num" style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 6 }}>
+            <span className="hero-amt" style={{ fontWeight: 900, color: C.accent, lineHeight: 1 }}>{won(currentAsset)}</span>
+            <span style={{ fontSize: 19, fontWeight: 700, color: "rgba(255,255,255,0.7)" }}>원</span>
+          </div>
+          <div className="num" style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", marginTop: 10, lineHeight: 1.6 }}>
+            기존 자산 {won(startSaved)} + 생활비 {won(life)} + 가계부 {ledgerNet >= 0 ? "+" : "-"}{won(Math.abs(ledgerNet))}
+          </div>
+        </div>
+
+        {/* 월별 누적 저축 그래프 */}
+        <div style={{ background: C.card, borderRadius: 20, border: `1px solid ${C.line}`, padding: "18px 16px 14px", marginBottom: 14 }}>
+          <div className="flex items-center justify-between" style={{ marginBottom: 4 }}>
+            <div className="flex items-center" style={{ gap: 7 }}><TrendingUp size={16} color={C.hero} /><span style={{ fontSize: 14, fontWeight: 700 }}>월별 누적 저축</span></div>
+            <span className="num" style={{ fontSize: 12, color: C.sub }}>매월 +{won(saveSum)}원</span>
+          </div>
+          <div style={{ fontSize: 11.5, color: C.sub, marginBottom: 10 }}>'모으는 돈'이 매달 쌓이고, 가계부의 수입·지출도 반영돼요</div>
+          <div style={{ width: "100%", height: 200 }}>
+            <ResponsiveContainer>
+              <LineChart data={chartData} margin={{ top: 6, right: 8, left: 6, bottom: 0 }}>
+                <CartesianGrid stroke={C.soft} vertical={false} />
+                <XAxis dataKey="m" tick={{ fontSize: 10, fill: C.sub }} interval={2} axisLine={false} tickLine={false} />
+                <YAxis tickFormatter={(v) => `${Math.round(v / 10000)}만`} tick={{ fontSize: 10, fill: C.sub }} width={44} axisLine={false} tickLine={false} />
+                <Tooltip formatter={(v) => [`${won(v)}원`, "누적 저축"]} labelFormatter={(l) => `20${l}`} contentStyle={{ borderRadius: 12, border: `1px solid ${C.line}`, fontSize: 12 }} />
+                <Line type="monotone" dataKey="saved" stroke={C.hero} strokeWidth={2.5} dot={false} activeDot={{ r: 5, fill: C.hero }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="num flex justify-between" style={{ fontSize: 12, marginTop: 8, background: C.soft, borderRadius: 10, padding: "9px 12px" }}>
+            <span style={{ color: C.sub }}>1년 뒤 예상</span><span style={{ fontWeight: 700 }}>{won(currentAsset + saveSum * 12)}원</span>
+          </div>
+        </div>
+
+        {/* 이번 달 가계부 요약 (수입/지출) */}
+        <div style={{ background: C.card, borderRadius: 20, border: `1px solid ${C.line}`, padding: "16px 18px", marginBottom: 14 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>이번 달 가계부</div>
+          <div className="flex" style={{ gap: 10 }}>
+            <div style={{ flex: 1, background: "#31B54C14", borderRadius: 14, padding: "12px 14px" }}>
+              <div style={{ fontSize: 11.5, color: C.sub, fontWeight: 500 }}>수입</div>
+              <div className="num" style={{ fontSize: 17, fontWeight: 900, marginTop: 3, color: "#31B54C" }}>+{won(ledgerIncome)}</div>
+            </div>
+            <div style={{ flex: 1, background: "#FF524D14", borderRadius: 14, padding: "12px 14px" }}>
+              <div style={{ fontSize: 11.5, color: C.sub, fontWeight: 500 }}>지출</div>
+              <div className="num" style={{ fontSize: 17, fontWeight: 900, marginTop: 3, color: "#FF524D" }}>-{won(ledgerExpense)}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* 기존 자산 입력 */}
+        <div style={{ background: C.card, borderRadius: 20, border: `1px solid ${C.line}`, padding: "16px 18px" }}>
+          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>기존에 갖고 있는 자산</div>
+          <div className="flex items-center" style={{ gap: 8 }}>
+            <input value={fmtInput(startSaved)} onChange={(e) => setStartSaved(parseInt(e.target.value.replace(/[^0-9]/g, ""), 10) || 0)} inputMode="numeric" placeholder="예금·현금 등 지금 가진 금액" className="num"
+              style={{ flex: 1, fontSize: 15, fontWeight: 700, border: `1px solid ${C.line}`, borderRadius: 11, padding: "11px 12px", background: C.soft }} />
+            <span style={{ fontSize: 13, color: C.sub, fontWeight: 600 }}>원</span>
+          </div>
+        </div>
+        </>)}
       </div>
 
       {/* 하단 네비게이션 */}
       <div className="bottom-nav" style={{ display: "flex", gap: 6, background: C.hero, borderRadius: 999, padding: 6, boxShadow: "0 12px 30px -8px rgba(0,0,0,0.4)" }}>
-        {[["home", "홈", Home], ["ledger", "가계부", NotebookPen]].map(([p, label, Icon]) => {
+        {[["home", "홈", Home], ["ledger", "가계부", NotebookPen], ["savings", "저축", TrendingUp]].map(([p, label, Icon]) => {
           const active = page === p;
           return (
             <button key={p} onClick={() => setPage(p)} className="tap flex items-center" style={{

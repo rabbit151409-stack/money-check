@@ -692,9 +692,9 @@ export default function App() {
         {[["home", "홈", Home], ["ledger", "가계부", NotebookPen], ["savings", "저축", TrendingUp]].map(([p, label, Icon]) => {
           const active = page === p;
           return (
-            <button key={p} onClick={() => setPage(p)} className={`tap nav-btn${active ? "" : " inactive"}`} style={{
+            <button key={p} onClick={() => setPage(p)} className="tap nav-btn" style={{
               background: active ? "#FFFFFF" : "transparent", color: active ? C.ink : "rgba(255,255,255,0.6)" }}>
-              <Icon size={18} /> {active && <span style={{ whiteSpace: "nowrap" }}>{label}</span>}
+              <Icon size={18} /> <span style={{ whiteSpace: "nowrap" }}>{label}</span>
             </button>
           );
         })}

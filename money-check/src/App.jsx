@@ -88,6 +88,10 @@ export default function App() {
   const saveSum = useMemo(() => cats.filter((c) => c.kind === "save").reduce((s, c) => s + sumItems(c.items), 0), [cats]);
   const outSum = useMemo(() => cats.filter((c) => c.kind === "out").reduce((s, c) => s + sumItems(c.items), 0), [cats]);
   const life = salary - saveSum - outSum;
+  const checkedSum = useMemo(() => cats.reduce((s, c) => s + c.items.filter((it) => it.done).reduce((a, it) => a + (it.a || 0), 0), 0), [cats]);
+  const totalItems = useMemo(() => cats.reduce((s, c) => s + c.items.length, 0), [cats]);
+  const doneItems = useMemo(() => cats.reduce((s, c) => s + c.items.filter((it) => it.done).length, 0), [cats]);
+  const availableNow = salary - checkedSum;
 
   const ledgerExpense = useMemo(() => ledger.filter((e) => e.type === "expense").reduce((s, e) => s + e.amount, 0), [ledger]);
   const ledgerIncome = useMemo(() => ledger.filter((e) => e.type === "income").reduce((s, e) => s + e.amount, 0), [ledger]);
@@ -111,15 +115,16 @@ export default function App() {
   const chartData = useMemo(() => {
     const arr = [];
     const base = new Date(2026, 6, 1);
+    const startWithLedger = startSaved + ledgerIncome - ledgerExpense;
     for (let i = 0; i < 18; i++) {
       const d = new Date(base.getFullYear(), base.getMonth() + i, 1);
       arr.push({
         m: `${String(d.getFullYear()).slice(2)}/${String(d.getMonth() + 1).padStart(2, "0")}`,
-        saved: startSaved + saveSum * i,
+        saved: startWithLedger + saveSum * i,
       });
     }
     return arr;
-  }, [saveSum, startSaved]);
+  }, [saveSum, startSaved, ledgerIncome, ledgerExpense]);
 
   // ---- actions ----
   const toggle = (id) => setOpen((o) => ({ ...o, [id]: !o[id] }));
@@ -211,9 +216,14 @@ export default function App() {
         <div style={{ background: `linear-gradient(165deg, #26262A, ${C.heroDeep})`, borderRadius: 28, padding: "24px 24px 22px", color: "#FFFFFF", boxShadow: "0 20px 44px -20px rgba(0,0,0,0.45)", marginBottom: 14 }}>
           <div style={{ fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.55)" }}>이번 달 쓸 수 있는 생활비</div>
           <div className="num" style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 6 }}>
-            <span className="hero-amt" style={{ fontWeight: 900, color: C.accent, lineHeight: 1 }}>{won(life)}</span>
+            <span className="hero-amt" style={{ fontWeight: 900, color: C.accent, lineHeight: 1 }}>{won(availableNow)}</span>
             <span style={{ fontSize: 19, fontWeight: 700, color: "rgba(255,255,255,0.7)" }}>원</span>
           </div>
+          {totalItems > 0 && (
+            <div className="num" style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", marginTop: 7 }}>
+              이체 {doneItems}/{totalItems}{doneItems < totalItems ? ` · 다 이체하면 ${won(life)}원` : " · 이체 완료 🎉"}
+            </div>
+          )}
           {(saveSum + outSum) > 0 && (<>
           <button onClick={() => setShowAllocBar((s) => !s)} className="tap flex items-center justify-between"
             style={{ width: "100%", marginTop: 18, background: "rgba(255,255,255,0.08)", border: "none", borderRadius: 12, padding: "10px 12px", cursor: "pointer" }}>
@@ -459,7 +469,7 @@ export default function App() {
             <div className="flex items-center" style={{ gap: 7 }}><TrendingUp size={16} color={C.hero} /><span style={{ fontSize: 14, fontWeight: 700 }}>월별 누적 저축</span></div>
             <span className="num" style={{ fontSize: 12, color: C.sub }}>매월 +{won(saveSum)}원</span>
           </div>
-          <div style={{ fontSize: 11.5, color: C.sub, marginBottom: 10 }}>'모으는 돈' 카테고리가 매달 쌓이는 추이예요</div>
+          <div style={{ fontSize: 11.5, color: C.sub, marginBottom: 10 }}>'모으는 돈'이 매달 쌓이고, 가계부의 수입·지출도 반영돼요</div>
           <div style={{ width: "100%", height: 190 }}>
             <ResponsiveContainer>
               <LineChart data={chartData} margin={{ top: 6, right: 8, left: 6, bottom: 0 }}>
@@ -479,7 +489,7 @@ export default function App() {
             </div>
           </div>
           <div className="num flex justify-between" style={{ fontSize: 12, marginTop: 10, padding: "0 2px" }}>
-            <span style={{ color: C.sub }}>1년 뒤</span><span style={{ fontWeight: 700 }}>{won(startSaved + saveSum * 12)}원</span>
+            <span style={{ color: C.sub }}>1년 뒤</span><span style={{ fontWeight: 700 }}>{won(startSaved + ledgerIncome - ledgerExpense + saveSum * 12)}원</span>
           </div>
         </div>
         )}

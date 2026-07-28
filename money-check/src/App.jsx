@@ -62,7 +62,7 @@ export default function App() {
   const [newCat, setNewCat] = useState({ name: "", kind: "out" });
   const [recAmt, setRecAmt] = useState("");
   const [showRecords, setShowRecords] = useState(false);
-  const [showAllocBar, setShowAllocBar] = useState(true);
+  const [showAllocBar, setShowAllocBar] = useState(false);
   const [page, setPage] = useState("home");
   const [ledger, setLedger] = useState(() => loadStore().ledger ?? []);
   const [ledgerForm, setLedgerForm] = useState({ type: "expense", memo: "", amount: "", date: todayStr() });

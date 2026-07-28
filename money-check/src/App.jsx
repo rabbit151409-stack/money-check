@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import {
   PiggyBank, Landmark, Home, Repeat, Wallet, Coins, Plus, Check, Pencil, X,
   ChevronDown, CalendarDays, TrendingUp, Trash2, Building2, ArrowRight,
-  NotebookPen, ArrowLeft, Circle, CheckCircle2,
+  NotebookPen, Circle, CheckCircle2,
 } from "lucide-react";
 
 const C = {
@@ -490,13 +490,8 @@ export default function App() {
 
         {page === "ledger" && (<>
         {/* 가계부 헤더 */}
-        <div className="flex items-center" style={{ gap: 10, marginBottom: 16 }}>
-          <button onClick={() => setPage("home")} className="tap" style={{ width: 38, height: 38, borderRadius: 12, background: C.card, border: `1px solid ${C.line}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-            <ArrowLeft size={18} color={C.ink} />
-          </button>
-          <div>
-            <div style={{ fontSize: 20, fontWeight: 900 }}>가계부</div>
-          </div>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 20, fontWeight: 900 }}>가계부</div>
         </div>
 
         {/* 가계부 히어로 */}
@@ -693,10 +688,10 @@ export default function App() {
           const active = page === p;
           return (
             <button key={p} onClick={() => setPage(p)} className="tap flex items-center" style={{
-              gap: 7, padding: active ? "11px 20px" : "11px 16px", borderRadius: 999, border: "none", cursor: "pointer",
+              gap: 7, padding: active ? "11px 22px" : "11px 15px", borderRadius: 999, border: "none", cursor: "pointer",
               background: active ? "#FFFFFF" : "transparent", color: active ? C.ink : "rgba(255,255,255,0.6)",
-              fontWeight: 700, fontSize: 13.5 }}>
-              <Icon size={18} /> {active && label}
+              fontWeight: 700, fontSize: 13.5, whiteSpace: "nowrap", flexShrink: 0 }}>
+              <Icon size={18} /> {active && <span style={{ whiteSpace: "nowrap" }}>{label}</span>}
             </button>
           );
         })}

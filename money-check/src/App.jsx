@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import {
   PiggyBank, Landmark, Home, Repeat, Wallet, Coins, Plus, Check, Pencil, X,
   ChevronDown, CalendarDays, TrendingUp, Trash2, Building2, ArrowRight,
-  NotebookPen, Circle, CheckCircle2,
+  NotebookPen, Circle, CheckCircle2, Menu, Target,
 } from "lucide-react";
 
 const C = {
@@ -51,6 +51,7 @@ export default function App() {
   const [payday, setPayday] = useState(() => loadStore().payday ?? 25);
   const [payAccount, setPayAccount] = useState(() => loadStore().payAccount ?? "");
   const [startSaved, setStartSaved] = useState(() => loadStore().startSaved ?? 0);
+  const [goal, setGoal] = useState(() => loadStore().goal ?? 0);
   const [records, setRecords] = useState(() => loadStore().records ?? []);
 
   const [open, setOpen] = useState({ save: true });
@@ -63,6 +64,7 @@ export default function App() {
   const [recAmt, setRecAmt] = useState("");
   const [showRecords, setShowRecords] = useState(false);
   const [showAllocBar, setShowAllocBar] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const [page, setPage] = useState("home");
   const [ledger, setLedger] = useState(() => loadStore().ledger ?? []);
   const [ledgerForm, setLedgerForm] = useState({ type: "expense", memo: "", amount: "", date: todayStr() });
@@ -76,9 +78,9 @@ export default function App() {
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ cats, payday, payAccount, startSaved, records, ledger }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ cats, payday, payAccount, startSaved, goal, records, ledger }));
     } catch {}
-  }, [cats, payday, payAccount, startSaved, records, ledger]);
+  }, [cats, payday, payAccount, startSaved, goal, records, ledger]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -242,8 +244,11 @@ export default function App() {
 
       <div className="app-container">
         {page === "home" && (<>
-        <div style={{ marginBottom: 16 }}>
+        <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 20, fontWeight: 900 }}>Money Check</div>
+          <button onClick={() => setShowMenu(true)} className="tap" style={{ width: 40, height: 40, borderRadius: 12, background: C.card, border: `1px solid ${C.line}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }} title="설정">
+            <Menu size={19} color={C.ink} />
+          </button>
         </div>
 
         {/* HERO */}
@@ -287,17 +292,7 @@ export default function App() {
             <div className="flex items-center" style={{ gap: 7 }}>
               <CalendarDays size={16} color={C.sub} />
               <span style={{ fontSize: 13, fontWeight: 700 }}>월급날</span>
-              {editPayday ? (
-                <span className="flex items-center gap-1">
-                  <input value={paydayDraft} onChange={(e) => setPaydayDraft(e.target.value.replace(/[^0-9]/g, ""))} inputMode="numeric" className="num" style={{ width: 46, fontSize: 14, fontWeight: 700, border: `1px solid ${C.line}`, borderRadius: 8, padding: "3px 6px", background: C.soft }} />
-                  <span style={{ fontSize: 13 }}>일</span>
-                  <button onClick={savePayday} className="tap" style={miniBtn(C.hero, "#fff")}><Check size={13} /></button>
-                </span>
-              ) : (
-                <button onClick={() => { setPaydayDraft(String(payday)); setEditPayday(true); }} className="tap num" style={{ fontSize: 13, fontWeight: 700, color: C.hero, background: C.soft, border: "none", borderRadius: 8, padding: "3px 9px" }}>
-                  매월 {payday}일 <Pencil size={11} style={{ display: "inline", marginLeft: 2 }} />
-                </button>
-              )}
+              <span className="num" style={{ fontSize: 13, fontWeight: 700, color: C.hero, background: C.soft, borderRadius: 8, padding: "3px 9px" }}>매월 {payday}일</span>
             </div>
             <div className="flex items-center" style={{ gap: 7 }}>
               <Building2 size={16} color={C.sub} />
@@ -640,6 +635,31 @@ export default function App() {
           </div>
         </div>
 
+        {/* 저축 목표 진행 */}
+        {goal > 0 && (() => {
+          const pct = Math.max(0, Math.min(100, (currentAsset / goal) * 100));
+          const left = goal - currentAsset;
+          const done = left <= 0;
+          return (
+            <div style={{ background: C.card, borderRadius: 20, border: `1px solid ${C.line}`, padding: "16px 18px", marginBottom: 14 }}>
+              <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
+                <span className="flex items-center gap-1" style={{ fontSize: 14, fontWeight: 700 }}><Target size={15} color={C.hero} /> 저축 목표</span>
+                <span className="num" style={{ fontSize: 13, fontWeight: 700, color: done ? "#31B54C" : C.hero }}>{Math.floor(pct)}%</span>
+              </div>
+              <div style={{ width: "100%", height: 12, background: C.soft, borderRadius: 999, overflow: "hidden" }}>
+                <div style={{ width: `${pct}%`, height: "100%", background: done ? "#31B54C" : C.hero, borderRadius: 999, transition: "width .4s ease" }} />
+              </div>
+              <div className="num flex items-center justify-between" style={{ fontSize: 12, color: C.sub, marginTop: 9 }}>
+                <span>{won(currentAsset)}원</span>
+                <span>목표 {won(goal)}원</span>
+              </div>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: done ? "#31B54C" : C.ink, marginTop: 8, textAlign: "center", background: C.soft, borderRadius: 10, padding: "9px 0" }}>
+                {done ? "🎉 목표 달성!" : `목표까지 ${won(left)}원 남았어요`}
+              </div>
+            </div>
+          );
+        })()}
+
         {/* 월별 누적 저축 (리스트) */}
         <div style={{ background: C.card, borderRadius: 20, border: `1px solid ${C.line}`, padding: "18px 16px 14px", marginBottom: 14 }}>
           <div className="flex items-center justify-between" style={{ marginBottom: 4 }}>
@@ -692,6 +712,39 @@ export default function App() {
         </div>
         </>)}
       </div>
+
+      {/* 설정 팝업 */}
+      {showMenu && (
+        <div onClick={() => setShowMenu(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 360, background: C.card, borderRadius: 22, padding: "22px 20px", boxShadow: "0 24px 60px -12px rgba(0,0,0,0.4)" }}>
+            <div className="flex items-center justify-between" style={{ marginBottom: 18 }}>
+              <span style={{ fontSize: 17, fontWeight: 900 }}>설정</span>
+              <button onClick={() => setShowMenu(false)} className="tap" style={{ background: "none", border: "none", cursor: "pointer", color: C.sub, display: "flex" }}><X size={20} /></button>
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <div className="flex items-center gap-1" style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}><CalendarDays size={15} color={C.hero} /> 월급날</div>
+              <div className="flex items-center" style={{ gap: 8 }}>
+                <span style={{ fontSize: 13, color: C.sub, fontWeight: 600 }}>매월</span>
+                <input value={payday} onChange={(e) => { const v = parseInt(e.target.value.replace(/[^0-9]/g, ""), 10) || 0; setPayday(Math.min(31, Math.max(0, v))); }} inputMode="numeric" placeholder="25" className="num"
+                  style={{ width: 70, fontSize: 15, fontWeight: 700, textAlign: "center", border: `1px solid ${C.line}`, borderRadius: 11, padding: "11px 12px", background: C.soft }} />
+                <span style={{ fontSize: 13, color: C.sub, fontWeight: 600 }}>일</span>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 22 }}>
+              <div className="flex items-center gap-1" style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}><Target size={15} color={C.hero} /> 저축 목표</div>
+              <div className="flex items-center" style={{ gap: 8 }}>
+                <input value={fmtInput(goal)} onChange={(e) => setGoal(parseInt(e.target.value.replace(/[^0-9]/g, ""), 10) || 0)} inputMode="numeric" placeholder="목표 금액" className="num"
+                  style={{ flex: 1, fontSize: 15, fontWeight: 700, border: `1px solid ${C.line}`, borderRadius: 11, padding: "11px 12px", background: C.soft }} />
+                <span style={{ fontSize: 13, color: C.sub, fontWeight: 600 }}>원</span>
+              </div>
+            </div>
+
+            <button onClick={() => setShowMenu(false)} className="tap" style={{ width: "100%", background: C.hero, color: "#fff", border: "none", borderRadius: 13, padding: "13px 0", fontWeight: 700, fontSize: 14.5, cursor: "pointer" }}>완료</button>
+          </div>
+        </div>
+      )}
 
       {/* 하단 네비게이션 */}
       <div className="bottom-nav" style={{ display: "flex", alignItems: "center", gap: 4, background: C.hero, borderRadius: 999, padding: 5, boxShadow: "0 12px 30px -8px rgba(0,0,0,0.4)" }}>

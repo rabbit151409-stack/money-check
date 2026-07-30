@@ -100,7 +100,6 @@ export default function App() {
   const checkedSum = useMemo(() => cats.reduce((s, c) => s + c.items.filter((it) => it.done).reduce((a, it) => a + (it.a || 0), 0), 0), [cats]);
   const totalItems = useMemo(() => cats.reduce((s, c) => s + c.items.length, 0), [cats]);
   const doneItems = useMemo(() => cats.reduce((s, c) => s + c.items.filter((it) => it.done).length, 0), [cats]);
-  const availableNow = salary - checkedSum + ledgerIncome - ledgerExpense;
 
   const ledgerExpense = useMemo(() => ledger.filter((e) => e.type === "expense").reduce((s, e) => s + e.amount, 0), [ledger]);
   const ledgerMonths = useMemo(() => {
@@ -111,6 +110,7 @@ export default function App() {
   const filteredLedger = useMemo(() => ledger.filter((e) => e.date.slice(0, 7) === ledgerMonth), [ledger, ledgerMonth]);
   const ledgerIncome = useMemo(() => ledger.filter((e) => e.type === "income").reduce((s, e) => s + e.amount, 0), [ledger]);
   const ledgerLeft = life - ledgerExpense + ledgerIncome;
+  const availableNow = salary - checkedSum + ledgerIncome - ledgerExpense;
   const ledgerNet = ledgerIncome - ledgerExpense;
   const currentAsset = startSaved + life + ledgerNet;
 

@@ -100,7 +100,7 @@ export default function App() {
   const checkedSum = useMemo(() => cats.reduce((s, c) => s + c.items.filter((it) => it.done).reduce((a, it) => a + (it.a || 0), 0), 0), [cats]);
   const totalItems = useMemo(() => cats.reduce((s, c) => s + c.items.length, 0), [cats]);
   const doneItems = useMemo(() => cats.reduce((s, c) => s + c.items.filter((it) => it.done).length, 0), [cats]);
-  const availableNow = salary - checkedSum;
+  const availableNow = salary - checkedSum + ledgerIncome - ledgerExpense;
 
   const ledgerExpense = useMemo(() => ledger.filter((e) => e.type === "expense").reduce((s, e) => s + e.amount, 0), [ledger]);
   const ledgerMonths = useMemo(() => {
@@ -280,6 +280,9 @@ export default function App() {
                   <span style={{ width: 7, height: 7, borderRadius: 999, background: s.color }} />{s.label} {won(s.amt)} ({salary > 0 ? Math.round((s.amt / salary) * 100) : 0}%)
                 </span>
               ))}
+            </div>
+            <div className="num" style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", marginTop: 10, paddingTop: 9, borderTop: "1px solid rgba(255,255,255,0.12)" }}>
+              이번 달 가계부 지출: {won(ledgerExpense)}원 (배분 비율에는 포함되지 않아요)
             </div>
           </div>
           )}

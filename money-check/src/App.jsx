@@ -20,6 +20,8 @@ const BANKS = [
   "씨티은행", "제일은행",
   "카카오뱅크", "케이뱅크", "토스뱅크",
   "기업은행", "농협은행", "산업은행", "수출입은행",
+  "미래에셋증권", "삼성증권", "NH투자증권", "한국투자증권", "KB증권",
+  "키움증권", "신한투자증권", "하나증권", "토스증권", "대신증권",
 ];
 const ICON_MAP = { piggy: PiggyBank, landmark: Landmark, home: Home, repeat: Repeat, coins: Coins, wallet: Wallet };
 const iconOf = (c) => ICON_MAP[c.iconKey] || (c.kind === "save" ? PiggyBank : Coins);
@@ -52,6 +54,10 @@ export default function App() {
   const [payAccount, setPayAccount] = useState(() => loadStore().payAccount ?? "");
   const [startSaved, setStartSaved] = useState(() => loadStore().startSaved ?? 0);
   const [goal, setGoal] = useState(() => loadStore().goal ?? 0);
+  const [bankMemos, setBankMemos] = useState(() => loadStore().bankMemos ?? {});
+  const [openBank, setOpenBank] = useState({});
+  const [bankMemoModal, setBankMemoModal] = useState(null);
+  const [bankMemoDraft, setBankMemoDraft] = useState("");
   const [records, setRecords] = useState(() => loadStore().records ?? []);
 
   const [open, setOpen] = useState({ save: true });
@@ -78,9 +84,9 @@ export default function App() {
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ cats, payday, payAccount, startSaved, goal, records, ledger }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ cats, payday, payAccount, startSaved, goal, bankMemos, records, ledger }));
     } catch {}
-  }, [cats, payday, payAccount, startSaved, goal, records, ledger]);
+  }, [cats, payday, payAccount, startSaved, goal, bankMemos, records, ledger]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -124,9 +130,11 @@ export default function App() {
     const m = {};
     cats.forEach((c) => c.items.forEach((it) => {
       const k = (it.acc || "-").trim() || "-";
-      m[k] = (m[k] || 0) + (it.a || 0);
+      if (!m[k]) m[k] = { amount: 0, items: [] };
+      m[k].amount += (it.a || 0);
+      m[k].items.push({ n: it.n, a: it.a, cat: c.name, color: c.color });
     }));
-    return Object.entries(m).map(([acc, amount]) => ({ acc, amount })).sort((a, b) => b.amount - a.amount);
+    return Object.entries(m).map(([acc, v]) => ({ acc, amount: v.amount, items: v.items })).sort((a, b) => b.amount - a.amount);
   }, [cats]);
 
   const chartData = useMemo(() => {
@@ -477,15 +485,55 @@ export default function App() {
             <span style={{ fontWeight: 700, color: C.hero }}>{payAccount || "급여통장"}</span><ArrowRight size={12} /> 아래 통장으로 매달 이체
           </div>
           <div className="flex flex-col" style={{ gap: 2 }}>
-            {bankRows.map((b) => (
-              <div key={b.acc} className="flex items-center justify-between" style={{ padding: "10px 4px", borderTop: `1px solid ${C.soft}` }}>
-                <div className="flex items-center" style={{ gap: 9 }}>
-                  <div style={{ width: 30, height: 30, borderRadius: 9, background: C.soft, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 900, color: C.hero }}>{b.acc.slice(0, 1)}</div>
-                  <span style={{ fontSize: 13.5, fontWeight: 500 }}>{b.acc}</span>
-                </div>
-                <span className="num" style={{ fontSize: 14, fontWeight: 700 }}>{won(b.amount)}원</span>
+            {bankRows.length === 0 && (
+              <div style={{ textAlign: "center", padding: "20px 0", color: C.sub, fontSize: 12.5 }}>통장별 배분에서 항목을 추가하면 은행별로 정리돼요</div>
+            )}
+            {bankRows.map((b) => {
+              const isOpen = !!openBank[b.acc];
+              return (
+              <div key={b.acc} style={{ borderTop: `1px solid ${C.soft}` }}>
+                <button onClick={() => setOpenBank((o) => ({ ...o, [b.acc]: !o[b.acc] }))} className="tap flex items-center justify-between" style={{ width: "100%", background: "none", border: "none", cursor: "pointer", padding: "10px 4px" }}>
+                  <div className="flex items-center" style={{ gap: 9 }}>
+                    <div style={{ width: 30, height: 30, borderRadius: 9, background: C.soft, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 900, color: C.hero }}>{b.acc.slice(0, 1)}</div>
+                    <div style={{ textAlign: "left" }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 500 }}>{b.acc}</div>
+                      {bankMemos[b.acc] ? <div style={{ fontSize: 11, color: C.sub, marginTop: 1 }}>{bankMemos[b.acc]}</div> : null}
+                    </div>
+                  </div>
+                  <div className="flex items-center" style={{ gap: 6 }}>
+                    <span className="num" style={{ fontSize: 14, fontWeight: 700 }}>{won(b.amount)}원</span>
+                    <ChevronDown size={15} color={C.sub} style={{ transform: isOpen ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
+                  </div>
+                </button>
+                {isOpen && (
+                  <div style={{ background: C.soft, borderRadius: 12, padding: "12px", margin: "2px 0 8px" }}>
+                    <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
+                      <div>
+                        <div style={{ fontSize: 11.5, color: C.sub, fontWeight: 600 }}>용도</div>
+                        <div style={{ fontSize: 13, fontWeight: 500, marginTop: 2, color: bankMemos[b.acc] ? C.ink : C.sub }}>{bankMemos[b.acc] || "아직 없어요"}</div>
+                      </div>
+                      <button onClick={() => { setBankMemoModal(b.acc); setBankMemoDraft(bankMemos[b.acc] || ""); }} className="tap flex items-center gap-1" style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 9, padding: "7px 11px", fontSize: 12, fontWeight: 700, color: C.hero, cursor: "pointer" }}>
+                        <Pencil size={12} /> {bankMemos[b.acc] ? "수정" : "작성"}
+                      </button>
+                    </div>
+                    <div style={{ fontSize: 11.5, color: C.sub, fontWeight: 600, marginBottom: 6 }}>배분 항목 {b.items.length}개</div>
+                    <div className="flex flex-col" style={{ gap: 5 }}>
+                      {b.items.map((it, idx) => (
+                        <div key={idx} className="flex items-center justify-between" style={{ fontSize: 12.5 }}>
+                          <span className="flex items-center" style={{ gap: 6 }}>
+                            <span style={{ width: 7, height: 7, borderRadius: 999, background: it.color }} />
+                            <span style={{ fontWeight: 500 }}>{it.n}</span>
+                            <span style={{ color: C.sub, fontSize: 11 }}>{it.cat}</span>
+                          </span>
+                          <span className="num" style={{ fontWeight: 700 }}>{won(it.a)}원</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            ))}
+              );
+            })}
             <div className="flex items-center justify-between num" style={{ padding: "11px 4px 2px", borderTop: `1.5px solid ${C.line}`, marginTop: 4 }}>
               <span style={{ fontSize: 12.5, color: C.sub, fontWeight: 700 }}>이체 합계</span>
               <span style={{ fontSize: 15, fontWeight: 900, color: C.hero }}>{won(saveSum + outSum)}원</span>
@@ -715,6 +763,22 @@ export default function App() {
         </div>
         </>)}
       </div>
+
+      {/* 은행 용도 팝업 */}
+      {bankMemoModal && (
+        <div onClick={() => setBankMemoModal(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 360, background: C.card, borderRadius: 22, padding: "22px 20px", boxShadow: "0 24px 60px -12px rgba(0,0,0,0.4)" }}>
+            <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
+              <span style={{ fontSize: 17, fontWeight: 900 }}>용도</span>
+              <button onClick={() => setBankMemoModal(null)} className="tap" style={{ background: "none", border: "none", cursor: "pointer", color: C.sub, display: "flex" }}><X size={20} /></button>
+            </div>
+            <div style={{ fontSize: 12.5, color: C.sub, marginBottom: 16 }}>{bankMemoModal} 통장을 어떤 용도로 쓰나요?</div>
+            <input value={bankMemoDraft} onChange={(e) => setBankMemoDraft(e.target.value)} autoFocus placeholder="예: 생활비 이체용, 비상금 통장"
+              style={{ width: "100%", fontSize: 15, border: `1px solid ${C.line}`, borderRadius: 11, padding: "12px 13px", background: C.soft, marginBottom: 18 }} />
+            <button onClick={() => { setBankMemos((m) => ({ ...m, [bankMemoModal]: bankMemoDraft.trim() })); setBankMemoModal(null); }} className="tap" style={{ width: "100%", background: C.hero, color: "#fff", border: "none", borderRadius: 13, padding: "13px 0", fontWeight: 700, fontSize: 14.5, cursor: "pointer" }}>저장</button>
+          </div>
+        </div>
+      )}
 
       {/* 설정 팝업 */}
       {showMenu && (

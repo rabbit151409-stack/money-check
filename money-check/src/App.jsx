@@ -732,9 +732,6 @@ export default function App() {
               </div>
             ))}
           </div>
-          <div className="num flex justify-between" style={{ fontSize: 12, marginTop: 10, background: C.soft, borderRadius: 10, padding: "9px 12px" }}>
-            <span style={{ color: C.sub }}>1년 뒤 예상</span><span style={{ fontWeight: 700 }}>{won(currentAsset + saveSum * 12)}원</span>
-          </div>
         </div>
 
         {/* 이번 달 가계부 요약 (수입/지출) */}

@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import {
   PiggyBank, Landmark, Home, Repeat, Wallet, Coins, Plus, Check, Pencil, X,
   ChevronDown, CalendarDays, TrendingUp, Trash2, Building2, ArrowRight,
-  NotebookPen, Circle, CheckCircle2, Menu, Target,
+  NotebookPen, Menu, Target,
 } from "lucide-react";
 
 const C = {
@@ -103,9 +103,6 @@ export default function App() {
   const saveSum = useMemo(() => cats.filter((c) => c.kind === "save").reduce((s, c) => s + sumItems(c.items), 0), [cats]);
   const outSum = useMemo(() => cats.filter((c) => c.kind === "out").reduce((s, c) => s + sumItems(c.items), 0), [cats]);
   const life = salary - saveSum - outSum;
-  const checkedSum = useMemo(() => cats.reduce((s, c) => s + c.items.filter((it) => it.done).reduce((a, it) => a + (it.a || 0), 0), 0), [cats]);
-  const totalItems = useMemo(() => cats.reduce((s, c) => s + c.items.length, 0), [cats]);
-  const doneItems = useMemo(() => cats.reduce((s, c) => s + c.items.filter((it) => it.done).length, 0), [cats]);
 
   const ledgerExpense = useMemo(() => ledger.filter((e) => e.type === "expense").reduce((s, e) => s + e.amount, 0), [ledger]);
   const ledgerMonths = useMemo(() => {
@@ -116,7 +113,7 @@ export default function App() {
   const filteredLedger = useMemo(() => ledger.filter((e) => e.date.slice(0, 7) === ledgerMonth), [ledger, ledgerMonth]);
   const ledgerIncome = useMemo(() => ledger.filter((e) => e.type === "income").reduce((s, e) => s + e.amount, 0), [ledger]);
   const ledgerLeft = life - ledgerExpense + ledgerIncome;
-  const availableNow = salary - checkedSum + ledgerIncome - ledgerExpense;
+  const availableNow = life + ledgerIncome - ledgerExpense;
   const ledgerNet = ledgerIncome - ledgerExpense;
   const currentAsset = startSaved + life + ledgerNet;
 
@@ -165,9 +162,6 @@ export default function App() {
   function delItem(catId, idx) {
     setCats((prev) => prev.map((c) => c.id === catId ? { ...c, items: c.items.filter((_, i) => i !== idx) } : c));
     if (edit && edit.startsWith(`${catId}:`)) setEdit(null);
-  }
-  function toggleDone(catId, idx) {
-    setCats((prev) => prev.map((c) => c.id === catId ? { ...c, items: c.items.map((it, i) => i === idx ? { ...it, done: !it.done } : it) } : c));
   }
   function startAdd(catId) { setAddingTo(catId); setNewItem({ n: "", acc: "", a: "" }); setOpen((o) => ({ ...o, [catId]: true })); }
   function confirmAdd(catId) {
@@ -266,11 +260,6 @@ export default function App() {
             <span className="hero-amt" style={{ fontWeight: 900, color: C.accent, lineHeight: 1 }}>{won(availableNow)}</span>
             <span style={{ fontSize: 19, fontWeight: 700, color: "rgba(255,255,255,0.7)" }}>원</span>
           </div>
-          {totalItems > 0 && (
-            <div className="num" style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", marginTop: 7 }}>
-              이체 {doneItems}/{totalItems}{doneItems < totalItems ? ` · 다 이체하면 ${won(life)}원` : " · 이체 완료 🎉"}
-            </div>
-          )}
           {(saveSum + outSum) > 0 && (<>
           <button onClick={() => setShowAllocBar((s) => !s)} className="tap flex items-center justify-between"
             style={{ width: "100%", marginTop: 18, background: "rgba(255,255,255,0.08)", border: "none", borderRadius: 12, padding: "10px 12px", cursor: "pointer" }}>
@@ -378,7 +367,7 @@ export default function App() {
                         {c.name}
                         <span style={{ fontSize: 10, fontWeight: 700, color: KIND_COLOR[c.kind], background: KIND_COLOR[c.kind] + "1A", padding: "2px 6px", borderRadius: 6 }}>{tagOf(c)}</span>
                       </div>
-                      <div className="num" style={{ fontSize: 12, color: C.sub, marginTop: 1 }}>{c.items.length === 0 ? "0개 항목" : `완료 ${c.items.filter((it) => it.done).length}/${c.items.length}`}{c.day ? ` · 매월 ${c.day}일` : ""}</div>
+                      <div className="num" style={{ fontSize: 12, color: C.sub, marginTop: 1 }}>{c.items.length}개 항목{c.day ? ` · 매월 ${c.day}일` : ""}</div>
                     </div>
                   </div>
                   <div className="flex items-center" style={{ gap: 8 }}>
@@ -408,20 +397,15 @@ export default function App() {
                       }
                       return (
                         <div key={idx} className="flex items-center justify-between" style={{ padding: "9px 0", borderBottom: idx < c.items.length - 1 ? `1px solid ${C.soft}` : "none" }}>
-                          <div className="flex items-center" style={{ gap: 10 }}>
-                            <button onClick={() => toggleDone(c.id, idx)} className="tap" style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "flex", flexShrink: 0 }} title={it.done ? "완료 취소" : "완료 체크"}>
-                              {it.done ? <CheckCircle2 size={22} color={c.color} fill={c.color} strokeWidth={0} /> : <Circle size={22} color={C.line} />}
-                            </button>
-                            <div>
-                              <div style={{ fontSize: 13.5, fontWeight: 500, color: it.done ? C.sub : C.ink, textDecoration: it.done ? "line-through" : "none" }}>{it.n}</div>
-                              <div className="flex items-center" style={{ gap: 4, fontSize: 11, color: C.sub, marginTop: 2 }}>
-                                <Building2 size={11} /><span>{it.acc}{it.day ? ` · ${it.day}일` : ""}</span>
-                              </div>
+                          <div>
+                            <div style={{ fontSize: 13.5, fontWeight: 500 }}>{it.n}</div>
+                            <div className="flex items-center" style={{ gap: 4, fontSize: 11, color: C.sub, marginTop: 2 }}>
+                              <Building2 size={11} /><span>{it.acc}{it.day ? ` · ${it.day}일` : ""}</span>
                             </div>
                           </div>
                           <div className="flex items-center" style={{ gap: 4 }}>
                             <button onClick={() => startEdit(c.id, idx, it)} className="tap num flex items-center" style={{ gap: 5, background: "none", border: "none", cursor: "pointer" }}>
-                              <span style={{ fontSize: 13.5, fontWeight: 700, color: it.done ? C.sub : C.ink }}>{won(it.a)}원</span><Pencil size={12} color={C.sub} />
+                              <span style={{ fontSize: 13.5, fontWeight: 700 }}>{won(it.a)}원</span><Pencil size={12} color={C.sub} />
                             </button>
                             <button onClick={() => delItem(c.id, idx)} className="tap" style={{ background: "none", border: "none", color: "#C7CDCB", padding: 3, cursor: "pointer", display: "flex" }} title="삭제"><Trash2 size={14} /></button>
                           </div>
@@ -541,8 +525,6 @@ export default function App() {
           </div>
         </div>
         )}
-
-        <div style={{ textAlign: "center", fontSize: 11, color: C.sub, marginTop: 22 }}>프로토타입 · 항목·카테고리를 자유롭게 추가/삭제할 수 있어요</div>
         </>)}
 
         {page === "ledger" && (<>
@@ -731,6 +713,9 @@ export default function App() {
                 <span className="num" style={{ fontSize: 14, fontWeight: 700 }}>{won(r.saved)}원</span>
               </div>
             ))}
+          </div>
+          <div className="num flex justify-between" style={{ fontSize: 12, marginTop: 10, background: C.soft, borderRadius: 10, padding: "9px 12px" }}>
+            <span style={{ color: C.sub }}>1년 뒤 예상</span><span style={{ fontWeight: 700 }}>{won(currentAsset + saveSum * 12)}원</span>
           </div>
         </div>
 

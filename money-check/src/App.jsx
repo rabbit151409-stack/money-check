@@ -351,6 +351,32 @@ export default function App() {
 
         {/* 통장별 배분 */}
         {tab === "cats" && (<>
+        {/* 모으는 돈 / 나가는 돈 합계 요약 */}
+        <div style={{ background: C.card, borderRadius: 16, border: `1px solid ${C.line}`, padding: "14px 16px", marginBottom: 12 }}>
+          <div className="flex items-center">
+            {[["save", "모으는 돈", saveSum], ["out", "나가는 돈", outSum]].map(([k, label, val], i) => (
+              <div key={k} className="flex items-center" style={{ flex: 1, gap: 11, justifyContent: i === 0 ? "flex-start" : "flex-end", borderLeft: i === 1 ? `1px solid ${C.line}` : "none", paddingLeft: i === 1 ? 16 : 0 }}>
+                {i === 0 && (
+                  <div style={{ width: 36, height: 36, borderRadius: 11, background: KIND_COLOR[k] + "1A", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <PiggyBank size={18} color={KIND_COLOR[k]} />
+                  </div>
+                )}
+                <div style={{ textAlign: i === 0 ? "left" : "right" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: C.sub, marginBottom: 4 }}>{label}</div>
+                  <div className="num" style={{ fontSize: 18, fontWeight: 900, color: KIND_COLOR[k], lineHeight: 1 }}>
+                    {won(val)}<span style={{ fontSize: 11, fontWeight: 700, color: C.sub }}> 원</span>
+                  </div>
+                </div>
+                {i === 1 && (
+                  <div style={{ width: 36, height: 36, borderRadius: 11, background: KIND_COLOR[k] + "1A", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <Coins size={18} color={KIND_COLOR[k]} />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="flex flex-col" style={{ gap: 10 }}>
           {cats.map((c) => {
             const Icon = iconOf(c);
